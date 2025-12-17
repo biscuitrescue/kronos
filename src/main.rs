@@ -1,4 +1,3 @@
-#![allow(unused)]
 /*
 * Content-addressed store
 
@@ -19,7 +18,8 @@ Serialization determinism
 
 // ordered fields
 
-use rs_merkle::{MerkleProof, MerkleTree, algorithms::Blake3, algorithms::Sha256};
+use blake3;
+use rs_merkle::{MerkleTree, algorithms::Sha256};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
