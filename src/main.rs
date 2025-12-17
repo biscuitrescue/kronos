@@ -19,7 +19,7 @@ Serialization determinism
 
 // ordered fields
 
-use rs_merkle::{MerkleProof, MerkleTree, algorithms::Sha256};
+use rs_merkle::{MerkleProof, MerkleTree, algorithms::Blake3, algorithms::Sha256};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
@@ -56,6 +56,12 @@ fn dir_leaf(dir: &DirNode) -> [u8; 32] {
 
 fn sort_dir(dir: &mut DirNode) {
     dir.entries.sort_by(|a, b| a.name.cmp(&b.name));
+}
+
+fn build_merkle_root(mut leaves: Vec<[u8; 32]>) -> [u8; 32] {
+    leaves.sort();
+    let tree = MerkleTree::<Blake3>::from_leaves(&leaves);
+    tree.root().unwrap()
 }
 
 fn main() {}
