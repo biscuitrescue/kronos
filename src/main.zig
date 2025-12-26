@@ -1,5 +1,6 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
+
 const Config = struct {
     abs_path: []const u8,
     mount_path: []const u8,
