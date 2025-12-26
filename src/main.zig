@@ -31,13 +31,58 @@ const Determ_FS = struct {
     merkle: MerkleTree,
     hasher_pool: Blake3Pool,
     wal: WriteAheadLog,
-    snap_index: SnapIndex,
+    snap_idx: SnapIndex,
     cache: ChunkCache,
 
     log_clock: std.atomic.Value(u64),
     is_mounted: std.atomic.Value(bool),
 
-    // pub fn init(alloc: Allocator, config: Config)
+    pub fn init(alloc: Allocator, config: Config) !@This() {
+        // try ensure_directories(config);
+
+        const cpu_count = std.Thread.getCpuCount() catch 4;
+        const hasher_pool = try Blake3Pool.init(alloc, cpu_count);
+
+        const merkle_tree = MerkleTree.load(
+            alloc,
+            config.merkle_path,
+            ) catch |err| switch (err) {
+            error.FileNotFound => try MerkleTree.create(alloc),
+            else => return err,
+        };
+
+        const wal = try WriteAheadLog.init(alloc, config.wal_path);
+
+        const snap_idx = try SnapIndex.load(
+            alloc,
+            config.snap_path,
+            ) catch |err| switch (err) {
+            error.FileNotFound => try SnapIndex.create(alloc),
+            else => return err,
+        };
+
+        const cache = try ChunkCache.init(alloc, config.cache_size * 1024 * 1024);
+
+        return .{
+            .alloc = alloc,
+            .config = config,
+            .merkle_tree = merkle_tree,
+            .hasher_pool = hasher_pool,
+            .wal = wal,
+            .snap_idx = snap_idx,
+            .cache = cache,
+            .log_clock = std.atomic.Value(u64).init(0),
+            .is_mounted = std.atomic.Value(bool).init(false),
+        };
+    }
+
+    pub fn deinit(self: @This()) void {
+        self.cache.deinit();
+        self.snap_idx.deinit();
+        self.wal.deinit();
+        self.merkle_tree.deinit();
+        self.hasher_pool.deinit();
+    }
 };
 
 const MerkleTree = struct {
@@ -64,7 +109,7 @@ const MerkleTree = struct {
         return .{
             .alloc = alloc,
             .root = null,
-            .path_to_node = std.StringHashMap(*Node).deinit(),
+            .path_to_node = std.StringHashMap(*Node).init(),
         };
     }
 
