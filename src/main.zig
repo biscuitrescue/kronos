@@ -25,6 +25,19 @@ fn parse_config(alloc: Allocator, args: anytype) !Config {
     };
 }
 
+const Determ_FS = struct {
+    alloc: Allocator,
+    config: Config,
+    merkle: MerkleTree,
+    hasher_pool: Blake3Pool,
+    wal: WriteAheadLog,
+    snap_index: SnapIndex,
+    cache: Cache,
+
+    log_clock: std.atomic.Value(u64),
+    is_mounted: std.atomic.Value(bool),
+};
+
 pub fn main() !void {
 
 }
