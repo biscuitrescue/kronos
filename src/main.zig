@@ -1,5 +1,6 @@
 const std = @import("std");
 const ds = @import("ds.zig");
+
 const Allocator = std.mem.Allocator;
 
 const Config = struct {
@@ -162,4 +163,6 @@ pub fn mount(self: *@This()) !void {
     std.log.info("Mounted deterministic FS at {s}", .{self.config.mount_point});
 }
 
-pub fn main() !void {}
+pub fn main() !void {
+    std.debug.print("Program is compiling ;)", .{});
+}
