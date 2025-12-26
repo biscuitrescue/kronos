@@ -1,4 +1,5 @@
 const std = @import("std");
+const ds = @import("ds.zig");
 const Allocator = std.mem.Allocator;
 
 const Config = struct {
@@ -13,42 +14,42 @@ const Config = struct {
 };
 
 const Determ_FS = struct {
-    alloc: Allocator,
-    config: Config,
-    merkle: MerkleTree,
-    hasher_pool: Blake3Pool,
-    wal: WriteAheadLog,
-    snap_idx: SnapIndex,
-    cache: ChunkCache,
+    alloc: ds.Allocator,
+    config: ds.Config,
+    merkle: ds.MerkleTree,
+    hasher_pool: ds.Blake3Pool,
+    wal: ds.WriteAheadLog,
+    snap_idx: ds.SnapIndex,
+    cache: ds.ChunkCache,
 
     log_clock: std.atomic.Value(u64),
     is_mounted: std.atomic.Value(bool),
 
-    pub fn init(alloc: Allocator, config: Config) !@This() {
+    pub fn init(alloc: ds.Allocator, config: ds.Config) !@This() {
         // try ensure_directories(config);
 
         const cpu_count = std.Thread.getCpuCount() catch 4;
-        const hasher_pool = try Blake3Pool.init(alloc, cpu_count);
+        const hasher_pool = try ds.Blake3Pool.init(alloc, cpu_count);
 
-        const merkle_tree = MerkleTree.load(
+        const merkle_tree = ds.MerkleTree.load(
             alloc,
             config.merkle_path,
-            ) catch |err| switch (err) {
-            error.FileNotFound => try MerkleTree.create(alloc),
+        ) catch |err| switch (err) {
+            error.FileNotFound => try ds.MerkleTree.create(alloc),
             else => return err,
         };
 
-        const wal = try WriteAheadLog.init(alloc, config.wal_path);
+        const wal = try ds.WriteAheadLog.init(alloc, config.wal_path);
 
-        const snap_idx = try SnapIndex.load(
+        const snap_idx = try ds.SnapIndex.load(
             alloc,
             config.snap_path,
-            ) catch |err| switch (err) {
-            error.FileNotFound => try SnapIndex.create(alloc),
+        ) catch |err| switch (err) {
+            error.FileNotFound => try ds.SnapIndex.create(alloc),
             else => return err,
         };
 
-        const cache = try ChunkCache.init(alloc, config.cache_size * 1024 * 1024);
+        const cache = try ds.ChunkCache.init(alloc, config.cache_size * 1024 * 1024);
 
         return .{
             .alloc = alloc,
@@ -72,142 +73,20 @@ const Determ_FS = struct {
     }
 };
 
-const MerkleTree = struct {
-    alloc: Allocator,
-    root: ?*Node,
-    path_to_node: std.StringHashMap(*Node),
-
-    const Node = struct {};
-
-    pub fn load(alloc: Allocator, path: []const u8) !@This() {
-        const file = try std.fs.openFileAbsolute(path, .{});
-        defer file.close();
-
-        const tree: @This() = .{
-            .alloc = alloc,
-            .root = null,
-            .path_to_node = std.StringHashMap(*Node).init(alloc),
-        };
-
-        return tree;
-    }
-
-    pub fn create(alloc: Allocator) !@This() {
-        return .{
-            .alloc = alloc,
-            .root = null,
-            .path_to_node = std.StringHashMap(*Node).init(),
-        };
-    }
-
-    pub fn deinit(self: @This()) void {
-        self.path_to_node.deinit();
-    }
-};
-
-const WriteAheadLog = struct {
-    alloc: Allocator,
-    file: std.fs.File,
-    buffer: std.ArrayList(u8),
-
-    pub fn init(alloc: Allocator, path: []const u8) !@This() {
-        const file = try std.fs.createFileAbsolute(path, .{
-            .read = true,
-            .truncate = false,
-        });
-
-        return .{
-            .alloc = Allocator,
-            .file = file,
-            .buffer = std.ArrayList(u8).init(alloc),
-        };
-    }
-
-    pub fn deinit(self: @This()) void {
-      self.buffer.deinit();
-      self.file.close();
-    }
-
-    pub fn verify(self: *@This()) !WALState {
-        _ = self;
-        return .clean;
-    }
-
-    pub fn getUncommittedOperations(self: *@This()) ![]Operation {
-        _ = self;
-        return &.{}; // Empty slice
-    }
-
-    pub fn getLastTimestamp(self: *@This()) !u64 {
-        _ = self;
-        return 0;
-    }
-
-    pub fn truncate(self: *@This(), index: u64) !void {
-        _ = self;
-        _ = index;
-    }
-};
-
-const Operation = struct {};
-
-const Blake3Pool = struct {
-    pub fn init(alloc: Allocator, count: usize) !@This() {
-        _ = alloc;
-        _ = count;
-    }
-
-    pub fn deinit(self: @This()) void {
-        _ = self;
-    }
-};
-
-const SnapIndex = struct {
-    pub fn load(allocator: Allocator, path: []const u8) !@This() {
-        _ = allocator;
-        _ = path;
-        return .{};
-    }
-    pub fn create(allocator: Allocator) !@This() {
-        _ = allocator;
-        return .{};
-    }
-    pub fn deinit(self: *@This()) void {
-        _ = self;
-    }
-};
-
-const ChunkCache = struct {
-    pub fn init(allocator: Allocator, size: usize) !@This() {
-        _ = allocator;
-        _ = size;
-        return .{};
-    }
-    pub fn deinit(self: *@This()) void {
-        _ = self;
-    }
-};
-
-const WALState = union(enum) {
-    clean,
-    incomplete: u64,
-    corrupted: []const u8,
-};
-
-fn parse_config(alloc: Allocator, args: anytype) !Config {
-    return Config {
+fn parse_config(alloc: ds.Allocator, args: anytype) !Config {
+    return Config{
         .abs_path = try alloc.dupe(u8, args.abs),
         .mount_path = try alloc.dupe(u8, args.mount),
-        .wal_path = try std.fs.path.join(alloc, &.{ args.abs, ".kronos/wal"}),
-        .merkle_path = try std.fs.path.join(alloc, &.{ args.abs, ".kronos/merkle.idx"}),
-        .snap_path = try std.fs.path.join(alloc, &.{ args.abs, ".kronos/snap"}),
-        .store_path = try std.fs.path.join(alloc, &.{ args.abs, ".kronos/chunks"}),
+        .wal_path = try std.fs.path.join(alloc, &.{ args.abs, ".kronos/wal" }),
+        .merkle_path = try std.fs.path.join(alloc, &.{ args.abs, ".kronos/merkle.idx" }),
+        .snap_path = try std.fs.path.join(alloc, &.{ args.abs, ".kronos/snap" }),
+        .store_path = try std.fs.path.join(alloc, &.{ args.abs, ".kronos/chunks" }),
         .cache_size = args.cache orelse 512,
         .chunk_size = 64 * 1024,
     };
 }
 
-fn ensureDirectories(config: Config) !void {
+fn ensureDirectories(config: ds.Config) !void {
     // std.fs.path.dirname now returns ?[]const u8
     const wal_dir = std.fs.path.dirname(config.wal_path) orelse ".";
     const merkle_dir = std.fs.path.dirname(config.merkle_index_path) orelse ".";
@@ -226,7 +105,6 @@ fn ensureDirectories(config: Config) !void {
         };
     }
 }
-
 
 pub fn recover(self: *@This()) !void {
     std.log.info("Starting recovery process...", .{});
@@ -284,6 +162,4 @@ pub fn mount(self: *@This()) !void {
     std.log.info("Mounted deterministic FS at {s}", .{self.config.mount_point});
 }
 
-pub fn main() !void {
-
-}
+pub fn main() !void {}
