@@ -81,7 +81,6 @@ pub fn mount(self: *@This()) !void {
 
     try self.recover();
 
-    // @import("builtin") still works in 0.15.2
     switch (@import("builtin").os.tag) {
         .linux => try self.mountFuse(),
         .windows => try self.mountDokan(),
