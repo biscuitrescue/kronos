@@ -16,26 +16,6 @@ fn parse_config(alloc: Allocator, args: anytype) !Config {
     };
 }
 
-fn ensureDirectories(config: Config) !void {
-    // std.fs.path.dirname now returns ?[]const u8
-    const wal_dir = std.fs.path.dirname(config.wal_path) orelse ".";
-    const merkle_dir = std.fs.path.dirname(config.merkle_index_path) orelse ".";
-
-    const paths = [_][]const u8{
-        wal_dir,
-        merkle_dir,
-        config.snapshot_path,
-        config.chunk_store_path,
-    };
-
-    for (paths) |path| {
-        std.fs.makeDirAbsolute(path) catch |err| switch (err) {
-            error.PathAlreadyExists => {},
-            else => return err,
-        };
-    }
-}
-
 pub fn recover(self: *@This()) !void {
     std.log.info("Starting recovery process...", .{});
 

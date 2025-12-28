@@ -1,7 +1,6 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
 
-
 const Config = struct {
     abs_path: []const u8,
     mount_path: []const u8,
@@ -26,7 +25,7 @@ const Determ_FS = struct {
     is_mounted: std.atomic.Value(bool),
 
     pub fn init(alloc: Allocator, config: Config) !@This() {
-        // try ensure_directories(config);
+        try ensure_directories(config);
 
         const cpu_count = std.Thread.getCpuCount() catch 4;
         const hasher_pool = try Blake3Pool.init(alloc, cpu_count);
@@ -194,3 +193,24 @@ const WALState = union(enum) {
     incomplete: u64,
     corrupted: []const u8,
 };
+
+
+fn ensure_directories(config: Config) !void {
+    // std.fs.path.dirname now returns ?[]const u8
+    const wal_dir = std.fs.path.dirname(config.wal_path) orelse ".";
+    const merkle_dir = std.fs.path.dirname(config.merkle_index_path) orelse ".";
+
+    const paths = [_][]const u8{
+        wal_dir,
+        merkle_dir,
+        config.snapshot_path,
+        config.chunk_store_path,
+    };
+
+    for (paths) |path| {
+        std.fs.makeDirAbsolute(path) catch |err| switch (err) {
+            error.PathAlreadyExists => {},
+            else => return err,
+        };
+    }
+}

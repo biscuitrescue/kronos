@@ -7,3 +7,4 @@ const SandboxConfig = struct {
     read_only_paths: [][]const u8,
     hidden_paths: [][]const u8,
 };
+
