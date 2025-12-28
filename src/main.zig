@@ -2,9 +2,8 @@ const std = @import("std");
 const Config = @import("ds").Config;
 const Allocator = std.mem.Allocator;
 
-
 fn parse_config(alloc: Allocator, args: anytype) !Config {
-    return Config {
+    return Config{
         .abs_path = try alloc.dupe(u8, args.abs),
         .mount_path = try alloc.dupe(u8, args.mount),
         .wal_path = try std.fs.path.join(alloc, &.{ args.abs, ".kronos/wal" }),
@@ -62,7 +61,6 @@ pub fn mount(self: *@This()) !void {
 
     try self.recover();
 
-    // @import("builtin") still works in 0.15.2
     switch (@import("builtin").os.tag) {
         .linux => try self.mountFuse(),
         .windows => try self.mountDokan(),
@@ -72,4 +70,6 @@ pub fn mount(self: *@This()) !void {
     std.log.info("Mounted deterministic FS at {s}", .{self.config.mount_point});
 }
 
-pub fn main() !void {}
+pub fn main() !void {
+    std.debug.print("Program is compiling ;)", .{});
+}
