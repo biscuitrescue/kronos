@@ -19,9 +19,13 @@ pub const SandBox = struct {
 };
 
 fn linuxRun(alloc: std.mem.Allocator, cfg: SandboxConfig, argv: []const []const u8) !void {
-    _ = alloc;
-    _ = argv;
-    _ = cfg;
+    var child = std.process.Child.init(argv, alloc);
+    child.cwd = cfg.root_path;
+    child.env_map = std.process.EnvMap.init(alloc);
+
+    try child.env_map.put("PATH", "/usr/bin");
+    try child.spawn();
+    try child.wait();
 }
 
 fn windowsRun(alloc: std.mem.Allocator, cfg: SandboxConfig, argv: []const []const u8) !void {
