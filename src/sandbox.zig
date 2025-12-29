@@ -11,25 +11,18 @@ const SandboxConfig = struct {
 
 pub const SandBox = struct {
     pub fn run(alloc: std.mem.Allocator, cfg: SandBox, argv: []const []const u8) !void {
+        // Error on non linux/win (mac)
+        var child = std.process.Child.init(argv, alloc);
+        child.cwd = cfg.root_path;
+        child.env_map = std.process.EnvMap.init(alloc);
+
         switch (builtin.os.tag) {
-            .linux => try linuxRun(alloc, cfg, argv),
-            .windows => try windowsRun(alloc, cfg, argv),
+            .linux => try child.env_map.put("PATH", "/usr/bin"),
+            .windows => try child.env_map.put("PATH", "C:\\Windows\\System32"),
+            else => return std.log.err("undefined OS", .{}),
         }
+
+        try child.spawn();
+        _ = try child.wait();
     }
 };
-
-fn linuxRun(alloc: std.mem.Allocator, cfg: SandboxConfig, argv: []const []const u8) !void {
-    var child = std.process.Child.init(argv, alloc);
-    child.cwd = cfg.root_path;
-    child.env_map = std.process.EnvMap.init(alloc);
-
-    try child.env_map.put("PATH", "/usr/bin");
-    try child.spawn();
-    try child.wait();
-}
-
-fn windowsRun(alloc: std.mem.Allocator, cfg: SandboxConfig, argv: []const []const u8) !void {
-    _ = alloc;
-    _ = argv;
-    _ = cfg;
-}
