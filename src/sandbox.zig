@@ -10,20 +10,22 @@ const SandboxConfig = struct {
 };
 
 pub const SandBox = struct {
-    pub fn run(alloc: std.mem.Allocator, cfg: SandBox) !void {
+    pub fn run(alloc: std.mem.Allocator, cfg: SandBox, argv: []const []const u8) !void {
         switch (builtin.os.tag) {
-            .linux => try linuxRun(alloc, cfg),
-            .windows => try windowsRun(alloc, cfg),
+            .linux => try linuxRun(alloc, cfg, argv),
+            .windows => try windowsRun(alloc, cfg, argv),
         }
     }
 };
 
-fn linuxRun(alloc: std.mem.Allocator, cfg: SandboxConfig) !void {
+fn linuxRun(alloc: std.mem.Allocator, cfg: SandboxConfig, argv: []const []const u8) !void {
     _ = alloc;
+    _ = argv;
     _ = cfg;
 }
 
-fn windowsRun(alloc: std.mem.Allocator, cfg: SandboxConfig) !void {
+fn windowsRun(alloc: std.mem.Allocator, cfg: SandboxConfig, argv: []const []const u8) !void {
     _ = alloc;
+    _ = argv;
     _ = cfg;
 }
