@@ -194,7 +194,6 @@ const WALState = union(enum) {
     corrupted: []const u8,
 };
 
-
 fn ensure_directories(config: Config) !void {
     // std.fs.path.dirname now returns ?[]const u8
     const wal_dir = std.fs.path.dirname(config.wal_path) orelse ".";

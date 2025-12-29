@@ -52,12 +52,12 @@ pub fn recover(self: *@This()) !void {
 }
 
 pub fn mount(self: *@This()) !void {
-  // TODO
+    // TODO
     if (self.is_mounted.swap(true, .acquire)) {
         return error.AlreadyMounted;
     }
 
-    errdefer self.is_mounted.store(false, .release);
+    defer self.is_mounted.store(false, .release);
 
     try self.recover();
 
