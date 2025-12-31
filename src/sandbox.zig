@@ -11,7 +11,6 @@ const SandboxConfig = struct {
 
 const SandboxError = error {
     UnsupportedOS,
-    ChildFailed,
     ForkFailed,
     ExecFailed,
 };
@@ -22,7 +21,7 @@ pub const SandBox = struct {
 
         if (builtin.os.tag != .linux) { return SandboxError.UnsupportedOS; }
 
-        const pid = try std.os.linux.fork() catch return SandboxError.ForkFailed;
+        const pid = std.os.linux.fork() catch return SandboxError.ForkFailed;
 
         if (pid == 0) {
             try std.os.linux.unshare(std.os.linux.CLONE.NEWNS);
@@ -46,6 +45,6 @@ pub const SandBox = struct {
 
 
         }
-        _ = std.os.linux.waitpid(pid, 0) catch { return SandboxError.ExecFailed; };
+        _ = try std.os.linux.waitpid(pid, 0);
     }
 };
