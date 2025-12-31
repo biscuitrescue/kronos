@@ -18,32 +18,34 @@ const SandboxError = error {
 
 
 pub const SandBox = struct {
-    pub fn run(alloc: std.mem.Allocator, cfg: SandboxConfig, argv: []const []const u8) !void {
-        // unnecessary exec on non linux / win machines
+    pub fn run(cfg: SandboxConfig, argv: []const []const u8) !void {
 
         if (builtin.os.tag != .linux) { return SandboxError.UnsupportedOS; }
 
-        const pid = try std.os.linux.fork();
+        const pid = try std.os.linux.fork() catch return SandboxError.ForkFailed;
 
         if (pid == 0) {
             try std.os.linux.unshare(std.os.linux.CLONE.NEWNS);
+
+            try std.os.linux.mount(null, "/", null, std.os.linux.MS.REC | std.os.linux.MS.PRIVATE, null);
+
+
             try std.os.linux.chroot(cfg.root_path);
             try std.os.chdir("/");
 
-            var child = std.process.Child.init(argv, alloc);
-            child.cwd = cfg.root_path;
-
-            var env = std.process.EnvMap.init(alloc);
+            var env = [_:null]?[*:0]const u8 {
+                "PATH=/usr/bin",
+                null,
+            };
             defer env.deinit();
-            child.env_map = &env;
 
-            try env.put("PATH", "/usr/bin");
+            std.os.linux.execve(argv[0], argv, &env)
+                catch {
+                    std.os.linux.execve(127);
+            };
 
-            try child.spawn();
-            _ = try child.wait();
 
-            std.os.linux.exit(0);
         }
-        _ = try std.os.linux.waitpid(pid, 0);
+        _ = std.os.linux.waitpid(pid, 0) catch { return SandboxError.ExecFailed; };
     }
 };
