@@ -21,7 +21,8 @@ pub const SandBox = struct {
 
         if (builtin.os.tag != .linux) { return SandboxError.UnsupportedOS; }
 
-        const pid = std.os.linux.fork() catch return SandboxError.ForkFailed;
+        const pid = std.os.linux.fork();
+        if (pid < 0) { return SandboxError.ForkFailed; }
 
         if (pid == 0) {
             try std.os.linux.unshare(std.os.linux.CLONE.NEWNS);
