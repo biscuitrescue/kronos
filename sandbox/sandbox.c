@@ -1,6 +1,14 @@
+#define _GNU_SOURCE
+#include <sched.h>
+#include <unistd.h>
+#include <sys/mount.h>
+#include <sys/wait.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <errno.h>
 
-int main() {
-    printf("Hello, World!\n");
-    return 0;
+static void die(const char *msg) {
+    perror(msg);
+    _exit(1);
 }
