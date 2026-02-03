@@ -30,6 +30,8 @@ pub const Engine = struct {
             self.config.mount_path,
             args.command,
             );
+
+        try self.commit();
     }
 
     pub fn recover(self: *Engine) !void {
@@ -110,7 +112,3 @@ pub fn mount(self: *@This()) !void {
 
     std.log.info("Mounted deterministic FS at {s}", .{self.config.mount_point});
 }
-
-// pub fn main() !void {
-//     std.debug.print("Program is compiling ;)", .{};
-// }
