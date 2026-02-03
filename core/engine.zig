@@ -1,25 +1,31 @@
 const std = @import("std");
-const Config = @import("ds").Config;
-const Sandbox = @import("sandbox.zig");
 const Allocator = std.mem.Allocator;
-const RunArgs = @import("cli.zig").RunArgs;
 
-pub const Engine = struct {
+const Config = @import("ds.zig").Config;
+const RunArgs = @import("cli.zig").RunArgs;
+const DetermFS = @import("ds.zig").Determ_FS;
+const Sandbox = @import("sandbox.zig");
+
+const Engine = struct {
     alloc: std.mem.Allocator,
     config: Config,
+    fs: DetermFS,
 
     pub fn init(
         alloc: std.mem.Allocator,
         config: Config,
-        ) !Engine {
+        fs: DetermFS,
+    ) !Engine {
         return .{
             .alloc = alloc,
             .config = config,
+            .fs = fs,
         };
     }
 
     pub fn deinit(self: *Engine) !void {
-        _ = self;
+        self.fs.deinit();
+        self.config.deinit();
     }
 
     pub fn run(self: *Engine, args: RunArgs) !void {
@@ -29,11 +35,10 @@ pub const Engine = struct {
             self.alloc,
             self.config.mount_path,
             args.command,
-            );
+        );
 
-        try self.commit();
+        try self.fs.commit();
     }
-
 
     pub fn recover(self: *Engine) !void {
         std.log.info("Starting recovery process...", .{});
@@ -71,29 +76,24 @@ pub const Engine = struct {
         std.log.info("Recovery complete. Logical clock at {}", .{self.logical_clock.load(.monotonic)});
     }
 
-    pub fn commit(self: *Engine) !void {
-        _ = self;
-        std.debug.print("Committing state", .{});
-    }
+    // pub fn mount(self: *Engine) !void {
+    //     // TODO
+    //     if (self.is_mounted.swap(true, .acquire)) {
+    //         return error.AlreadyMounted;
+    //     }
 
-    pub fn mount(self: *Engine) !void {
-        // TODO
-        if (self.is_mounted.swap(true, .acquire)) {
-            return error.AlreadyMounted;
-        }
+    //     defer self.is_mounted.store(false, .release);
 
-        defer self.is_mounted.store(false, .release);
+    //     try self.recover();
 
-        try self.recover();
+    //     switch (@import("builtin").os.tag) {
+    //         .linux => try self.mountFuse(),
+    //         .windows => try self.mountDokan(),
+    //         else => return error.UnsupportedPlatform,
+    //     }
 
-        switch (@import("builtin").os.tag) {
-            .linux => try self.mountFuse(),
-            .windows => try self.mountDokan(),
-            else => return error.UnsupportedPlatform,
-        }
-
-        std.log.info("Mounted deterministic FS at {s}", .{self.config.mount_point});
-    }
+    //     std.log.info("Mounted deterministic FS at {s}", .{self.config.mount_point});
+    // }
 };
 
 fn parse_config(alloc: Allocator, args: anytype) !Config {

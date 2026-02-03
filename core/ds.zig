@@ -213,3 +213,22 @@ fn ensure_directories(config: Config) !void {
         };
     }
 }
+
+pub fn mount(self: *Engine) !void {
+    // TODO
+    if (self.is_mounted.swap(true, .acquire)) {
+        return error.AlreadyMounted;
+    }
+
+    defer self.is_mounted.store(false, .release);
+
+    try self.recover();
+
+    switch (@import("builtin").os.tag) {
+        .linux => try self.mountFuse(),
+        .windows => try self.mountDokan(),
+        else => return error.UnsupportedPlatform,
+    }
+
+    std.log.info("Mounted deterministic FS at {s}", .{self.config.mount_point});
+}

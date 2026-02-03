@@ -1,6 +1,7 @@
 const std = @import("std");
-const Engine = @import("engine.zig").Engine;
+
 const Cli = @import("cli.zig");
+const Engine = @import("engine.zig").Engine;
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
