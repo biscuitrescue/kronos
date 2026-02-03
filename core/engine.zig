@@ -34,14 +34,65 @@ pub const Engine = struct {
         try self.commit();
     }
 
+
     pub fn recover(self: *Engine) !void {
-        _ = self;
-        std.debug.print("Recovering state", .{});
+        std.log.info("Starting recovery process...", .{});
+
+        const wal_state = try self.wal.verify();
+
+        switch (wal_state) {
+            .clean => {
+                std.log.info("WAL is clean", .{});
+            },
+            .incomplete => |last_valid_index| {
+                std.log.warn("WAL has incomplete transaction, rolling back to {}", .{last_valid_index});
+                try self.wal.truncate(last_valid_index);
+            },
+            .corrupted => |details| {
+                std.log.err("WAL corruption detected: {s}", .{details});
+                return error.WALCorrupted;
+            },
+        }
+
+        const uncommitted_ops = try self.wal.getUncommittedOperations();
+        defer self.allocator.free(uncommitted_ops);
+
+        if (uncommitted_ops.len > 0) {
+            std.log.info("Replaying {} uncommitted operations", .{uncommitted_ops.len});
+
+            for (uncommitted_ops) |op| {
+                try self.replayOperation(op);
+            }
+        }
+
+        const last_timestamp = try self.wal.getLastTimestamp();
+        self.logical_clock.store(last_timestamp + 1, .monotonic);
+
+        std.log.info("Recovery complete. Logical clock at {}", .{self.logical_clock.load(.monotonic)});
     }
 
     pub fn commit(self: *Engine) !void {
         _ = self;
         std.debug.print("Committing state", .{});
+    }
+
+    pub fn mount(self: *Engine) !void {
+        // TODO
+        if (self.is_mounted.swap(true, .acquire)) {
+            return error.AlreadyMounted;
+        }
+
+        defer self.is_mounted.store(false, .release);
+
+        try self.recover();
+
+        switch (@import("builtin").os.tag) {
+            .linux => try self.mountFuse(),
+            .windows => try self.mountDokan(),
+            else => return error.UnsupportedPlatform,
+        }
+
+        std.log.info("Mounted deterministic FS at {s}", .{self.config.mount_point});
     }
 };
 
@@ -56,59 +107,4 @@ fn parse_config(alloc: Allocator, args: anytype) !Config {
         .cache_size = args.cache orelse 512,
         .chunk_size = 64 * 1024,
     };
-}
-
-pub fn recover(self: *@This()) !void {
-    std.log.info("Starting recovery process...", .{});
-
-    const wal_state = try self.wal.verify();
-
-    switch (wal_state) {
-        .clean => {
-            std.log.info("WAL is clean", .{});
-        },
-        .incomplete => |last_valid_index| {
-            std.log.warn("WAL has incomplete transaction, rolling back to {}", .{last_valid_index});
-            try self.wal.truncate(last_valid_index);
-        },
-        .corrupted => |details| {
-            std.log.err("WAL corruption detected: {s}", .{details});
-            return error.WALCorrupted;
-        },
-    }
-
-    const uncommitted_ops = try self.wal.getUncommittedOperations();
-    defer self.allocator.free(uncommitted_ops);
-
-    if (uncommitted_ops.len > 0) {
-        std.log.info("Replaying {} uncommitted operations", .{uncommitted_ops.len});
-
-        for (uncommitted_ops) |op| {
-            try self.replayOperation(op);
-        }
-    }
-
-    const last_timestamp = try self.wal.getLastTimestamp();
-    self.logical_clock.store(last_timestamp + 1, .monotonic);
-
-    std.log.info("Recovery complete. Logical clock at {}", .{self.logical_clock.load(.monotonic)});
-}
-
-pub fn mount(self: *@This()) !void {
-    // TODO
-    if (self.is_mounted.swap(true, .acquire)) {
-        return error.AlreadyMounted;
-    }
-
-    defer self.is_mounted.store(false, .release);
-
-    try self.recover();
-
-    switch (@import("builtin").os.tag) {
-        .linux => try self.mountFuse(),
-        .windows => try self.mountDokan(),
-        else => return error.UnsupportedPlatform,
-    }
-
-    std.log.info("Mounted deterministic FS at {s}", .{self.config.mount_point});
 }
