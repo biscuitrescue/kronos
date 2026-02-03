@@ -1,6 +1,47 @@
 const std = @import("std");
 const Config = @import("ds").Config;
+const Sandbox = @import("sandbox.zig");
 const Allocator = std.mem.Allocator;
+const RunArgs = @import("cli.zig").RunArgs;
+
+pub const Engine = struct {
+    alloc: std.mem.Allocator,
+    config: Config,
+
+    pub fn init(
+        alloc: std.mem.Allocator,
+        config: Config,
+        ) !Engine {
+        return .{
+            .alloc = alloc,
+            .config = config,
+        };
+    }
+
+    pub fn deinit(self: *Engine) !void {
+        _ = self;
+    }
+
+    pub fn run(self: *Engine, args: RunArgs) !void {
+        try self.recover();
+
+        try Sandbox.run(
+            self.alloc,
+            self.config.mount_path,
+            args.command,
+            );
+    }
+
+    pub fn recover(self: *Engine) !void {
+        _ = self;
+        std.debug.print("Recovering state", .{});
+    }
+
+    pub fn commit(self: *Engine) !void {
+        _ = self;
+        std.debug.print("Committing state", .{});
+    }
+};
 
 fn parse_config(alloc: Allocator, args: anytype) !Config {
     return Config{
@@ -70,6 +111,6 @@ pub fn mount(self: *@This()) !void {
     std.log.info("Mounted deterministic FS at {s}", .{self.config.mount_point});
 }
 
-pub fn main() !void {
-    std.debug.print("Program is compiling ;)", .{});
-}
+// pub fn main() !void {
+//     std.debug.print("Program is compiling ;)", .{};
+// }
