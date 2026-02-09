@@ -1,16 +1,7 @@
 use std::{path::PathBuf, sync::atomic::AtomicBool};
 
-#[allow(unused)]
-pub struct Config {
-    pub abs_path: PathBuf,
-    pub mount_path: PathBuf,
-    pub wal_path: PathBuf,
-    pub merkle_path: PathBuf,
-    pub snap_path: PathBuf,
-    pub store_path: PathBuf,
-    pub cache_size: usize,
-    pub chunk_size: usize,
-}
+pub mod merkle;
+pub mod config;
 
 pub struct StateStore {
     pub config: Config,

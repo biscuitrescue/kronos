@@ -4,3 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+core = { path = "../../core" }
+tokio = { version = "1", features = ["full"] }
+anyhow = "1.0.101"
+blake3 = "1.5"
