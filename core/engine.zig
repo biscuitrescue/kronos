@@ -3,18 +3,18 @@ const Allocator = std.mem.Allocator;
 
 const Config = @import("ds.zig").Config;
 const RunArgs = @import("cli.zig").RunArgs;
-const DetermFS = @import("ds.zig").Determ_FS;
+const StateStore = @import("ds.zig").StateStore;
 const Sandbox = @import("sandbox.zig");
 
 const Engine = struct {
     alloc: std.mem.Allocator,
     config: Config,
-    fs: DetermFS,
+    fs: StateStore,
 
     pub fn init(
         alloc: std.mem.Allocator,
         config: Config,
-        fs: DetermFS,
+        fs: StateStore,
     ) !Engine {
         return .{
             .alloc = alloc,
@@ -75,36 +75,4 @@ const Engine = struct {
 
         std.log.info("Recovery complete. Logical clock at {}", .{self.logical_clock.load(.monotonic)});
     }
-
-    // pub fn mount(self: *Engine) !void {
-    //     // TODO
-    //     if (self.is_mounted.swap(true, .acquire)) {
-    //         return error.AlreadyMounted;
-    //     }
-
-    //     defer self.is_mounted.store(false, .release);
-
-    //     try self.recover();
-
-    //     switch (@import("builtin").os.tag) {
-    //         .linux => try self.mountFuse(),
-    //         .windows => try self.mountDokan(),
-    //         else => return error.UnsupportedPlatform,
-    //     }
-
-    //     std.log.info("Mounted deterministic FS at {s}", .{self.config.mount_point});
-    // }
 };
-
-fn parse_config(alloc: Allocator, args: anytype) !Config {
-    return Config{
-        .abs_path = try alloc.dupe(u8, args.abs),
-        .mount_path = try alloc.dupe(u8, args.mount),
-        .wal_path = try std.fs.path.join(alloc, &.{ args.abs, ".kronos/wal" }),
-        .merkle_path = try std.fs.path.join(alloc, &.{ args.abs, ".kronos/merkle.idx" }),
-        .snap_path = try std.fs.path.join(alloc, &.{ args.abs, ".kronos/snap" }),
-        .store_path = try std.fs.path.join(alloc, &.{ args.abs, ".kronos/chunks" }),
-        .cache_size = args.cache orelse 512,
-        .chunk_size = 64 * 1024,
-    };
-}

@@ -6,16 +6,33 @@ pub const RunArgs = struct {
     command: []const []const u8,
 };
 
+const ParsedFlags = struct {
+    root: []const u8,
+    cache_mb: ?usize = null,
+};
+
+const CliError = error{
+    MissingRoot,
+    MissingCacheValue,
+    MissingCommand,
+    UnknownFlag,
+};
+
 pub fn parse(alloc: std.mem.Allocator) !RunArgs {
     var args = std.process.args();
-    _ = args.next(); // skip program name
+    _ = args.next(); // program name
 
-    // parse flags here
-    // --root
-    // --cache
-    // etc
+    var parsed_flags = ParsedFlags{ .root = try args.next() orelse return error.MissingRoot };
 
-    const config = try parseConfig(alloc, /* parsed flags */);
+    if (args.next()) |arg| {
+        if (std.mem.startsWith(u8, arg, "--cache=")) {
+            parsed_flags.cache_mb = try std.fmt.parseInt(usize, arg[8..], 10);
+        } else {
+            return error.UnknownFlag;
+        }
+    }
+
+    const config = try parse_config(alloc, parsed_flags);
     const command = try collectCommand(alloc, &args);
 
     return .{
@@ -24,7 +41,7 @@ pub fn parse(alloc: std.mem.Allocator) !RunArgs {
     };
 }
 
-fn parseConfig(alloc: std.mem.Allocator, parsed: ParsedFlags) !Config {
+fn parse_config(alloc: std.mem.Allocator, parsed: ParsedFlags) !Config {
     return Config{
         .abs_path = try alloc.dupe(u8, parsed.abs),
         .mount_path = try alloc.dupe(u8, parsed.mount),
@@ -35,4 +52,12 @@ fn parseConfig(alloc: std.mem.Allocator, parsed: ParsedFlags) !Config {
         .cache_size = parsed.cache orelse 512,
         .chunk_size = 64 * 1024,
     };
+}
+
+fn collectCommand(alloc: std.mem.Allocator, args: *std.process.ArgIterator) ![]const []const u8 {
+    var command = std.ArrayList([]const u8).init(alloc);
+    while (args.next()) |arg| {
+        try command.append(arg);
+    }
+    return command.toOwnedSlice();
 }
