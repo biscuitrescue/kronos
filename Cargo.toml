@@ -1,12 +1,14 @@
 [workspace]
-resolver = "2"
+
 members = [
-    "crates/core",
+    "crates/kron",
     "crates/engine",
-    "crates/cli",
-]
+    "crates/cli"
+, "crates/kron"]
+
+resolver = "2"
 
 [workspace.dependencies]
-blake3 = "1.8"
+clap = { version = "4.5", features = ["derive", "string"] }
 serde = { version = "1.0", features = ["derive"] }
-tokio = { version = "1.49", features = ["full"] }
+anyhow = "1.0"

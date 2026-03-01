@@ -40,8 +40,8 @@
                     zlib
                     stdenv.cc.cc.lib
                     pkg-config
-                    openssl
                     nix-ld
+                    openssl
                   ];
                 LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [
                   pkgs.zlib
