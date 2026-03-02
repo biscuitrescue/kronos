@@ -22,4 +22,3 @@ target
 
 .envrc
 .direnv/
-/flake.lock

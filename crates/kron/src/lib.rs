@@ -1,3 +1,8 @@
+pub mod config;
+pub mod merkle;
+
+use config::Config;
+
 pub fn add(left: u64, right: u64) -> u64 {
     left + right
 }
