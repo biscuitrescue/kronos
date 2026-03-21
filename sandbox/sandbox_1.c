@@ -15,6 +15,20 @@
 #include <time.h>
 #include <errno.h>
 
+
+/*
+Sandbox
+ ---- SandboxProcess       - what to run
+ ---- SandboxLimits        - how many resource it can use
+ ---- SandboxFilesystem    - what files it can see
+ ---- SandboxSyscallPolicy - what syscalls it is allowed
+ ---- SandboxNetworkPolicy - what network it can reach
+ ---- SandboxNamespaces    - what os namespace to isolate
+ ---- SandboxIPC           - process talking
+ ---- SandboxResult        - what happened after it ran
+*/
+
+
 typedef struct {
     pid_t  pid;
     uid_t  uid;
