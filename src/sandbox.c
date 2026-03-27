@@ -1,9 +1,5 @@
 #define _GNU_SOURCE
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
-#include <signal.h>
 #include <sched.h>
 #include <seccomp.h>
 #include <sys/types.h>
@@ -12,8 +8,6 @@
 #include <sys/mount.h>
 #include <sys/stat.h>
 #include <sys/prctl.h>
-#include <time.h>
-#include <errno.h>
 
 
 /*
@@ -30,10 +24,10 @@ Sandbox
 
 
 typedef struct {
-    pid_t  pid;
-    uid_t  uid;
-    gid_t  gid;
-    char  *executable;
+    pid_t pid;
+    uid_t uid;
+    gid_t gid;
+    char *executable;
     char **argv;
     char **envp;
 } SandboxProcess;
@@ -56,19 +50,19 @@ typedef struct {
 
 typedef struct {
     char *root_dir;
-    int   use_tmpfs;
+    int use_tmpfs;
 } SandboxFilesystem;
 
 typedef enum { SYSCALL_ALLOW, SYSCALL_DENY, SYSCALL_LOG } SyscallAction;
 
 typedef struct {
-    int           syscall_nr;
+    int syscall_nr;
     SyscallAction action;
 } SyscallRule;
 
 typedef struct {
-    SyscallRule  *rules;
-    int           rule_count;
+    SyscallRule *rules;
+    int rule_count;
     SyscallAction default_action;
 } SandboxSyscallPolicy;
 
@@ -79,23 +73,23 @@ typedef struct {
 } SandboxIPC;
 
 typedef struct {
-    int  exit_code;
-    int  killed_by_signal;
-    int  signal_num;
+    int exit_code;
+    int killed_by_signal;
+    int signal_num;
     long wall_time_ms;
     long cpu_time_ms;
     long memory_used_kb;
-    int  oom_killed;
-    int  tle;
+    int oom_killed;
+    int tle;
 } SandboxResult;
 
 typedef struct {
-    SandboxProcess       process;
-    SandboxLimits        limits;
-    SandboxNamespaces    namespaces;
-    SandboxFilesystem    filesystem;
+    SandboxProcess process;
+    SandboxLimits limits;
+    SandboxNamespaces namespaces;
+    SandboxFilesystem filesystem;
     SandboxSyscallPolicy syscall_policy;
-    SandboxIPC           ipc;
-    SandboxResult        result;
-    int                  debug;
+    SandboxIPC ipc;
+    SandboxResult result;
+    int debug;
 } Sandbox;
