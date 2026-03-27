@@ -1,6 +1,20 @@
 const std = @import("std");
-const sandbox = @cImport({});
 const Print = std.debug.print;
+const sandbox = @cImport({
+    @cDefine("_GNU_SOURCE", "");
+
+    @cInclude("unistd.h");
+    @cInclude("sched.h");
+    @cInclude("seccomp.h");
+    @cInclude("sys/types.h");
+    @cInclude("sys/wait.h");
+    @cInclude("sys/resource.h");
+    @cInclude("sys/mount.h");
+    @cInclude("sys/stat.h");
+    @cInclude("sys/prctl.h");
+
+    @cInclude("sandbox.h");
+});
 
 pub fn run(
     alloc: std.mem.Allocator,

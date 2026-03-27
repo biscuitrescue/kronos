@@ -1,14 +1,5 @@
-#define _GNU_SOURCE
-#include <unistd.h>
-#include <sched.h>
-#include <seccomp.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <sys/resource.h>
-#include <sys/mount.h>
-#include <sys/stat.h>
-#include <sys/prctl.h>
-
+#ifndef KRONOS_SANDBOX_H
+#define KRONOS_SANDBOX_H
 
 /*
 Sandbox
@@ -93,3 +84,4 @@ typedef struct {
     SandboxResult result;
     int debug;
 } Sandbox;
+#endif
